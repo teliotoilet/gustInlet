@@ -29,6 +29,7 @@ License
 #include "surfaceFields.H"
 //#include "fvcMeshPhi.H"
 #include "mathematicalConstants.H"
+#include "steadyStateDdtScheme.H"
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
@@ -149,32 +150,44 @@ void Foam::gustInletFvPatchVectorField::updateCoeffs()
         return;
     }
 
-    const fvPatch& p = patch();
-    const polyPatch& pp = p.patch();
-    //const vectorField xc = pp.faceCentres();
-    const Foam::scalar t = this->db().time().timeOutputValue();
-
-    const vectorField rvec( pp.faceCentres() - r0_ );
-    const vectorField bvec( rvec - (rvec & avec_)*avec_ );
-    const scalarField expfn( Foam::exp(-(bvec & bvec)/(2*sourceRadius_*sourceRadius_)) );
-
-    scalar scaling(0.0);
-    scalar amplitude(0.0);
-    scalar radPerSec(0.0);
-
     vectorField::operator=( refValue_ );
-//    forAll(gustFrequencies_, mode)
-//    {
-        amplitude = gustAmplitude_; //gustAmplitudes_[mode];
-        radPerSec = 2*constant::mathematical::pi * gustFrequency_; //gustFrequencies_[mode];
-        scaling = amplitude * sin( radPerSec*t );
-        Info<< "gustInlet "// mode " << mode
-            << " : amplitude=" << amplitude << " m/s"
-            << ", frequency=" << radPerSec << " rad/s"
-            << ", current scaling=" << scaling << endl;
 
-        vectorField::operator+=( scaling * expfn * gustDirection_ );
-//    }
+    word ddtScheme
+    (
+        this->dimensionedInternalField().mesh()
+        .ddtScheme(this->dimensionedInternalField().name())
+    );
+
+    // only add gust for unsteady case!
+    if (ddtScheme != fv::steadyStateDdtScheme<scalar>::typeName)
+    {
+        const fvPatch& p = patch();
+        const polyPatch& pp = p.patch();
+        //const vectorField xc = pp.faceCentres();
+
+        const Foam::scalar t = this->db().time().timeOutputValue();
+
+        const vectorField rvec( pp.faceCentres() - r0_ );
+        const vectorField bvec( rvec - (rvec & avec_)*avec_ );
+        const scalarField expfn( Foam::exp(-(bvec & bvec)/(2*sourceRadius_*sourceRadius_)) );
+
+        scalar scaling(0.0);
+        scalar amplitude(0.0);
+        scalar radPerSec(0.0);
+
+    //    forAll(gustFrequencies_, mode)
+    //    {
+            amplitude = gustAmplitude_; //gustAmplitudes_[mode];
+            radPerSec = 2*constant::mathematical::pi * gustFrequency_; //gustFrequencies_[mode];
+            scaling = amplitude * sin( radPerSec*t );
+            Info<< "gustInlet "// mode " << mode
+                << " : amplitude=" << amplitude << " m/s"
+                << ", frequency=" << radPerSec << " rad/s"
+                << ", current scaling=" << scaling << endl;
+
+            vectorField::operator+=( scaling * expfn * gustDirection_ );
+    //    }
+    }
 
     fixedValueFvPatchVectorField::updateCoeffs();
 }
