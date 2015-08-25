@@ -183,6 +183,7 @@ void Foam::gustInletFvPatchVectorField::updateCoeffs()
 void Foam::gustInletFvPatchVectorField::write(Ostream& os) const
 {
     fvPatchVectorField::write(os);
+    os.writeKeyword("Uinf") << refValue_ << token::END_STATEMENT << nl;
     os.writeKeyword("direction") << gustDirection_ << token::END_STATEMENT << nl;
     //os.writeKeyword("amplitude") << gustAmplitudes_ << token::END_STATEMENT << nl;
     //os.writeKeyword("frequency") << gustFrequencies_ << token::END_STATEMENT << nl;
